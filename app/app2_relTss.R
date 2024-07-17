@@ -1,4 +1,12 @@
+library(tidyverse)
+library(shiny)
+library(gridExtra)
+
+final <- read_tsv("app/hgt_introns.tsv", col_names = T)
+
 # Define UI
+
+
 ui <- fluidPage(
   titlePanel("Density Plot and Box Plot of Exon-Exon Junctions - Positions relative to TSS"),
   
