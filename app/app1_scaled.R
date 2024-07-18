@@ -8,7 +8,7 @@ final <- read_tsv("app/hgt_introns.tsv", col_names = T)
 
 # Define UI
 ui <- fluidPage(
-  titlePanel("Density Plot and Box Plot of Exon-Exon Junctions - Positions relative to TSS"),
+  titlePanel("Density Plot and Box Plot of Exon-Exon Junctions - Scaled gene structure"),
   
   sidebarLayout(
     sidebarPanel(
