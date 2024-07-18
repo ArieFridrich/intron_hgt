@@ -1,13 +1,14 @@
 library(tidyverse)
 library(shiny)
 library(gridExtra)
+library(DT)
 
 final <- read_tsv("app/hgt_introns.tsv", col_names = T)
 
 
 # Define UI
 ui <- fluidPage(
-  titlePanel("Density Plot and Box Plot of Exon-Exon Junctions - scaled positions"),
+  titlePanel("Density Plot and Box Plot of Exon-Exon Junctions - Positions relative to TSS"),
   
   sidebarLayout(
     sidebarPanel(
@@ -37,11 +38,15 @@ ui <- fluidPage(
                   value = c(min(final$cDNA_size), max(final$cDNA_size))),
       sliderInput("exons2", "Exons Set 2", 
                   min = min(final$exons), max = max(final$exons), 
-                  value = c(min(final$exons), max(final$exons)))
+                  value = c(min(final$exons), max(final$exons))),
+      downloadButton("downloadData1", "Download Table for Set 1"),
+      downloadButton("downloadData2", "Download Table for Set 2")
     ),
     
     mainPanel(
-      plotOutput("combinedPlot")
+      plotOutput("combinedPlot"),
+      DTOutput("table1"),
+      DTOutput("table2")
     )
   )
 )
@@ -77,8 +82,8 @@ server <- function(input, output) {
       geom_density(data = filtered_data()$data2, aes(x = scaled_pos, color = "Set 2"), fill = "red", alpha = 0.1) +
       theme_minimal() +
       labs(title = "Density Plot of Exon-Exon Junctions", x = "Scaled Gene Structure", y = "Density") +
-      xlim(-1, 2) +  # Set the x-axis range
-      scale_color_manual(values = c("blue", "red"))  # Match colors to geom_density fills
+      xlim(-1, 2) + # Set the x-axis range
+      scale_color_manual(values = c("blue", "red")) # Match colors to geom_density fills
     
     # Box plots with jitter
     box_plot <- ggplot() +
@@ -88,12 +93,38 @@ server <- function(input, output) {
       geom_jitter(data = filtered_data()$data2, aes(x = scaled_pos, y = "Set 2"), color = "red", alpha = 0.1, height = 0.15) +
       theme_minimal() +
       labs(x = "Scaled Gene Structure", y = "") +
-      xlim(-1, 2) +  # Set the x-axis range
+      xlim(-1, 2) + # Set the x-axis range
       theme(axis.title.y = element_blank(), axis.text.y = element_text(color = c("blue", "red")))
     
     # Combine the two plots vertically
     grid.arrange(density_plot, box_plot, ncol = 1, heights = c(2/3, 1/3))
   })
+  
+  output$table1 <- renderDT({
+    datatable(filtered_data()$data1, options = list(pageLength = 5))
+  })
+  
+  output$table2 <- renderDT({
+    datatable(filtered_data()$data2, options = list(pageLength = 5))
+  })
+  
+  output$downloadData1 <- downloadHandler(
+    filename = function() {
+      paste("filtered_data_set1-", Sys.Date(), ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(filtered_data()$data1, file, row.names = FALSE)
+    }
+  )
+  
+  output$downloadData2 <- downloadHandler(
+    filename = function() {
+      paste("filtered_data_set2-", Sys.Date(), ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(filtered_data()$data2, file, row.names = FALSE)
+    }
+  )
 }
 
 # Run the application 
