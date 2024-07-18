@@ -2,13 +2,13 @@ library(tidyverse)
 library(shiny)
 library(gridExtra)
 library(DT)
+library(cowplot)  
 
-final <- read_tsv("app/hgt_introns.tsv", col_names = T)
-
+final <- read_tsv("app/hgt_introns.tsv", col_names = TRUE)
 
 # Define UI
 ui <- fluidPage(
-  titlePanel("Density Plot and Box Plot of Exon-Exon Junctions - Positions relative to TSS"),
+  titlePanel("Density Plot and Box Plot of Exon-Exon Junctions - Intons relative to CDS start"),
   
   sidebarLayout(
     sidebarPanel(
@@ -69,7 +69,14 @@ server <- function(input, output) {
       filter(cDNA_size >= input$cDNA_size2[1] & cDNA_size <= input$cDNA_size2[2]) %>%
       filter(exons >= input$exons2[1] & exons <= input$exons2[2])
     
-    list(data1 = data1, data2 = data2)
+    # Create distinct datasets for boxplot
+    data3 <- data1 %>%
+      distinct(gene_id, .keep_all = TRUE)
+    
+    data4 <- data2 %>%
+      distinct(gene_id, .keep_all = TRUE)
+    
+    list(data1 = data1, data2 = data2, data3 = data3, data4 = data4)
   })
   
   output$combinedPlot <- renderPlot({
@@ -96,8 +103,16 @@ server <- function(input, output) {
       xlim(-500, 500) + # Set the x-axis range
       theme(axis.title.y = element_blank(), axis.text.y = element_text(color = c("blue", "red")))
     
-    # Combine the two plots vertically
-    grid.arrange(density_plot, box_plot, ncol = 1, heights = c(2/3, 1/3))
+    # Boxplot for expression data
+    expression_plot <- ggplot() +
+      geom_boxplot(data = filtered_data()$data3, aes(x = "Set 1", y = log2_expression), fill = "blue", alpha = 0.5) +
+      geom_boxplot(data = filtered_data()$data4, aes(x = "Set 2", y = log2_expression), fill = "red", alpha = 0.5) +
+      theme_minimal() +
+      labs(title = "Expression Data", x = "", y = "log2(Expression)")
+    
+    # Combine the plots
+    combined_density_box <- plot_grid(density_plot, box_plot, ncol = 1, align = 'v', rel_heights = c(2/3, 1/3))
+    plot_grid(expression_plot, combined_density_box, ncol = 2, rel_widths = c(1/3, 2/3))
   })
   
   output$table1 <- renderDT({
@@ -129,4 +144,3 @@ server <- function(input, output) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
